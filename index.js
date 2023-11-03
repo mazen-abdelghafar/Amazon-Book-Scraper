@@ -1,14 +1,75 @@
+const express = require("express");
 const axios = require("axios");
 const cheerio = require("cheerio");
+const ExcelJS = require("exceljs");
+
+const app = express();
+const port = 3000;
+
+app.get("/", (req, res) => {
+  res.sendFile(__dirname + "/index.html");
+});
+
+app.get("/generateResult", async (req, res) => {
+  const categories = [
+    { catName: "aps", categoryName: "All", pageCount: 4 },
+    { catName: "stripbooks-intl-ship", categoryName: "Books", pageCount: 4 },
+    { catName: "digital-text", categoryName: "Kindle Store", pageCount: 4 },
+  ];
+
+  const searchTerm = "Super Vision: An Eye-Opening Approach to Getting Unstuck";
+  const books = [];
+
+  const statusElement = (message) => {
+    // Send the status message to the client
+    res.write(`Found in category: ${message}\n`);
+  };
+  (async () => {
+    for (const { catName, categoryName, pageCount } of categories) {
+      for (let pageNum = 1; pageNum <= pageCount; pageNum++) {
+        // Send the category and page status
+        statusElement(`${categoryName} Page: ${pageNum}`);
+
+        const data = await fetchBooks(catName, pageNum);
+        const foundTitleIndex = data.findIndex((title) => title === searchTerm);
+        if (foundTitleIndex !== -1) {
+          const ranking = foundTitleIndex + 1;
+          books.push({
+            title: searchTerm,
+            pageNum,
+            ranking,
+            category: categoryName,
+          });
+        }
+      }
+    }
+
+    // Create an Excel workbook and worksheet
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Books");
+
+    // ...
+
+    // Save the workbook to a buffer
+    const buffer = await workbook.xlsx.writeBuffer();
+
+    // Send the Excel file as a response
+    res.set(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.set("Content-Disposition", "attachment; filename=book_results.xlsx");
+    res.end(buffer); // Ensure the response is correctly terminated
+  })();
+});
 
 const fetchBooks = async (catName, pageNum) => {
-  try {
-    const categoryLink1 = catName === "aps" ? "" : `&i=${catName}`;
-    const categoryLink2 = catName === "aps" ? "" : `%2C${catName}`;
+  const categoryLink1 = catName === "aps" ? "" : `&i=${catName}`;
+  const categoryLink2 = catName === "aps" ? "" : `%2C${catName}`;
 
+  try {
     const response = await axios.get(
       `https://www.amazon.com/s?k=personal+transformation+books${categoryLink1}&page=${pageNum}&sprefix=personal+transformation+books${categoryLink2}%2C530`,
-
       {
         headers: {
           Accept:
@@ -21,8 +82,8 @@ const fetchBooks = async (catName, pageNum) => {
         },
       }
     );
-    const html = response.data;
 
+    const html = response.data;
     const $ = cheerio.load(html);
 
     const books = [];
@@ -38,44 +99,11 @@ const fetchBooks = async (catName, pageNum) => {
 
     return books;
   } catch (error) {
-    console.log("ERRORRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR");
+    console.error("Error in fetchBooks:", error);
     throw error;
   }
 };
 
-let books = [];
-
-// fetchBooks("stripbooks-intl-ship", 2).then((books) => console.log(books));
-
-let category = ["aps", "stripbooks-intl-ship", "digital-text"];
-// let category2 = {
-//   all: "aps",
-//   books: "stripbooks-intl-ship",
-//   "kindle-store": "digital-text",
-// };
-
-for (let j = 0; j < category.length; j++) {
-  for (let i = 1; i < 4; i++) {
-    fetchBooks(category[j], i)
-      .then((data) => {
-        const foundTitle = data.filter(
-          (title) =>
-            title === "Super Vision: An Eye-Opening Approach to Getting Unstuck"
-        );
-        if (foundTitle[0] !== undefined) {
-          // console.log("Found Title", foundTitle[0]);
-          // console.log("Page Number", i);
-          // console.log("Ranking", data.indexOf(foundTitle[0]) + 1);
-          books.push({
-            title: `${foundTitle[0]}`,
-            pageNum: `${i}`,
-            ranking: `${data.indexOf(foundTitle[0]) + 1}`,
-            category: `${category[j]}`,
-          });
-          console.log("books", books);
-        }
-      })
-      // .then(() => console.log("books", books))
-      .catch((err) => console.log("err", err));
-  }
-}
+app.listen(port, () => {
+  console.log(`App is running at http://localhost:${port}`);
+});

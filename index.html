@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Search Results</title>
+  </head>
+  <body>
+    <h1>Search Results</h1>
+    <button id="generateResult">Generate Result</button>
+    <div id="loading"></div>
+    <div id="status"></div>
+
+    <script>
+      document
+        .getElementById("generateResult")
+        .addEventListener("click", async () => {
+          // Send a request to trigger the result generation
+          const response = await fetch("/generateResult");
+          if (response.ok) {
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "book_results.xlsx";
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+
+            // Display the status message
+            document.getElementById("status").textContent =
+              "File generated successfully!";
+          } else {
+            // Display an error message
+            document.getElementById("status").textContent =
+              "Error occurred while generating the file.";
+          }
+        });
+    </script>
+  </body>
+</html>
