@@ -1,18 +1,26 @@
 const axios = require("axios");
 const cheerio = require("cheerio");
 
-const fetchBooks = async (pageNum) => {
+const fetchBooks = async (catName, pageNum) => {
   try {
+    const categoryLink1 = catName === "aps" ? "" : `&i=${catName}`;
+    const categoryLink2 = catName === "aps" ? "" : `%2C${catName}`;
+
     const response = await axios.get(
-      `https://www.amazon.com/s?k=personal+transformation+books&page=${pageNum}&crid=FTM2435CGVRP&qid=1698569245&sprefix=personal+transformation+books%2Caps%2C378&ref=sr_pg_2`,
+      `https://www.amazon.com/s?k=personal+transformation+books${categoryLink1}&page=${pageNum}&sprefix=personal+transformation+books${categoryLink2}%2C530`,
+
       {
         headers: {
-          Accept: "application/json",
-          "User-Agent": "axios 0.21.1",
+          Accept:
+            "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36",
+          Pragma: "no-cache",
+          "Cache-Control": "max-age=0",
+          Vary: "Content-Type,X-Amazon-Wtm-Tag-SP-Search-Secured-Port-Enabled,Accept-Encoding,User-Agent",
         },
       }
     );
-
     const html = response.data;
 
     const $ = cheerio.load(html);
@@ -25,35 +33,49 @@ const fetchBooks = async (pageNum) => {
       const title = book
         .find("span.a-size-medium.a-color-base.a-text-normal")
         .text();
-
       books.push(title);
     });
 
     return books;
   } catch (error) {
-    console.log("ERRORRRRRRS");
+    console.log("ERRORRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR");
     throw error;
   }
 };
 
 let books = [];
-for (let i = 1; i < 4; i++) {
-  fetchBooks(i)
-    .then((data) => {
-      const foundTitle = data.filter(
-        (title) => title === "Affirm Yourself: An Affirmation Coloring Book"
-      );
-      if (foundTitle[0] !== undefined) {
-        console.log("Found Title", foundTitle[0]);
-        console.log("Page Number", i);
-        console.log("Ranking", data.indexOf(foundTitle[0]));
-        // books.push({
-        //   title: `Book Title ${foundTitle[0]}`,
-        //   pageNum: `Page number ${i}`,
-        //   ranking: `Ranking ${data.indexOf(foundTitle[0])}`,
-        // });
-        // console.log("books", books);
-      }
-    })
-    .catch((err) => console.log("err", err));
+
+// fetchBooks("stripbooks-intl-ship", 2).then((books) => console.log(books));
+
+let category = ["aps", "stripbooks-intl-ship", "digital-text"];
+// let category2 = {
+//   all: "aps",
+//   books: "stripbooks-intl-ship",
+//   "kindle-store": "digital-text",
+// };
+
+for (let j = 0; j < category.length; j++) {
+  for (let i = 1; i < 4; i++) {
+    fetchBooks(category[j], i)
+      .then((data) => {
+        const foundTitle = data.filter(
+          (title) =>
+            title === "Super Vision: An Eye-Opening Approach to Getting Unstuck"
+        );
+        if (foundTitle[0] !== undefined) {
+          // console.log("Found Title", foundTitle[0]);
+          // console.log("Page Number", i);
+          // console.log("Ranking", data.indexOf(foundTitle[0]) + 1);
+          books.push({
+            title: `${foundTitle[0]}`,
+            pageNum: `${i}`,
+            ranking: `${data.indexOf(foundTitle[0]) + 1}`,
+            category: `${category[j]}`,
+          });
+          console.log("books", books);
+        }
+      })
+      // .then(() => console.log("books", books))
+      .catch((err) => console.log("err", err));
+  }
 }
