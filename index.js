@@ -6,30 +6,29 @@ const ExcelJS = require("exceljs");
 const app = express();
 const port = 3000;
 
+app.set("view engine", "ejs"); // Set EJS as the view engine
+
+// Define the route for the home page
 app.get("/", (req, res) => {
-  res.sendFile(__dirname + "/index.html");
+  res.render("index", { status: [] }); // Render the EJS template with an empty status array
 });
 
+// Define the route for generating results
 app.get("/generateResult", async (req, res) => {
-  const categories = [
-    { catName: "aps", categoryName: "All", pageCount: 4 },
-    { catName: "stripbooks-intl-ship", categoryName: "Books", pageCount: 4 },
-    { catName: "digital-text", categoryName: "Kindle Store", pageCount: 4 },
-  ];
+  try {
+    const categories = [
+      // Define your categories here
+      { catName: "aps", categoryName: "All", pageCount: 4 },
+      { catName: "stripbooks-intl-ship", categoryName: "Books", pageCount: 4 },
+      { catName: "digital-text", categoryName: "Kindle Store", pageCount: 4 },
+    ];
 
-  const searchTerm = "Super Vision: An Eye-Opening Approach to Getting Unstuck";
-  const books = [];
+    const searchTerm =
+      "Super Vision: An Eye-Opening Approach to Getting Unstuck";
+    const books = [];
 
-  const statusElement = (message) => {
-    // Send the status message to the client
-    res.write(`Found in category: ${message}\n`);
-  };
-  (async () => {
     for (const { catName, categoryName, pageCount } of categories) {
       for (let pageNum = 1; pageNum <= pageCount; pageNum++) {
-        // Send the category and page status
-        statusElement(`${categoryName} Page: ${pageNum}`);
-
         const data = await fetchBooks(catName, pageNum);
         const foundTitleIndex = data.findIndex((title) => title === searchTerm);
         if (foundTitleIndex !== -1) {
@@ -48,21 +47,35 @@ app.get("/generateResult", async (req, res) => {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet("Books");
 
-    // ...
+    // Define the headers
+    worksheet.columns = [
+      { header: "Title", key: "title" },
+      { header: "Page Number", key: "pageNum" },
+      { header: "Ranking", key: "ranking" },
+      { header: "Category", key: "category" },
+    ];
 
-    // Save the workbook to a buffer
-    const buffer = await workbook.xlsx.writeBuffer();
+    // Add the data to the worksheet
+    worksheet.addRows(books);
 
     // Send the Excel file as a response
-    res.set(
+    res.setHeader(
       "Content-Type",
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     );
-    res.set("Content-Disposition", "attachment; filename=book_results.xlsx");
-    res.end(buffer); // Ensure the response is correctly terminated
-  })();
+    res.setHeader(
+      "Content-Disposition",
+      "attachment; filename=book_results.xlsx"
+    );
+    const buffer = await workbook.xlsx.writeBuffer();
+    res.end(buffer);
+  } catch (error) {
+    console.error("Error generating Excel file:", error);
+    res.status(500).send("Error generating Excel file");
+  }
 });
 
+// fetchBooks function
 const fetchBooks = async (catName, pageNum) => {
   const categoryLink1 = catName === "aps" ? "" : `&i=${catName}`;
   const categoryLink2 = catName === "aps" ? "" : `%2C${catName}`;

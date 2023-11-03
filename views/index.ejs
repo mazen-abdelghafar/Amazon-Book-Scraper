@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Search Results</title>
+  </head>
+  <body>
+    <h1>Search Results</h1>
+    <button id="generateResult">Generate Result</button>
+    <div id="status"></div>
+
+    <script>
+      document
+        .getElementById("generateResult")
+        .addEventListener("click", async () => {
+          // Clear any previous status messages
+          document.getElementById("status").innerHTML = "";
+
+          // Add a loading message
+          const loadingMessage = document.createElement("p");
+          loadingMessage.textContent = "Fetching books... Please wait.";
+          document.getElementById("status").appendChild(loadingMessage);
+
+          // Send a request to trigger the result generation
+          const response = await fetch("/generateResult");
+          if (response.ok) {
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "book_results.xlsx";
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+
+            // Remove the loading message and display the success message
+            loadingMessage.remove();
+            const successMessage = document.createElement("p");
+            successMessage.textContent = "File generated successfully!";
+            document.getElementById("status").appendChild(successMessage);
+          } else {
+            // Remove the loading message and display an error message
+            loadingMessage.remove();
+            const errorMessage = document.createElement("p");
+            errorMessage.textContent =
+              "Error occurred while generating the file.";
+            document.getElementById("status").appendChild(errorMessage);
+          }
+        });
+    </script>
+  </body>
+</html>
