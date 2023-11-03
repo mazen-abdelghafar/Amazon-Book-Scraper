@@ -7,7 +7,8 @@ const app = express();
 const port = 3000;
 
 app.set("view engine", "ejs"); // Set EJS as the view engine
-
+// Specify the directory where EJS templates are located
+app.set("views", __dirname + "/views");
 // Define the route for the home page
 app.get("/", (req, res) => {
   res.render("index", { status: [] }); // Render the EJS template with an empty status array
