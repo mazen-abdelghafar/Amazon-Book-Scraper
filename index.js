@@ -15,7 +15,7 @@ app.get("/", (req, res) => {
 });
 
 // Define the route for generating results
-app.get("/generateResult", async (req, res) => {
+app.get("/generate-result", async (req, res) => {
   try {
     const categories = [
       // Define your categories here
